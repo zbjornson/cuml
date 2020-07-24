@@ -619,23 +619,12 @@ __global__ __launch_bounds__(
 }
 
 /**
- * Find the norm(Y)
- */
-__global__ void get_norm(const float *restrict Y1, const float *restrict Y2,
-                         float *restrict norm, const int N) {
-  const int i = (blockIdx.x * blockDim.x) + threadIdx.x;
-  if (i >= N) return;
-  norm[i] = Y1[i] * Y1[i] + Y2[i] * Y2[i];
-}
-
-/**
  * Fast attractive kernel. Uses COO matrix.
  */
 __global__ void attractive_kernel_bh(
   const float *restrict VAL, const int *restrict COL, const int *restrict ROW,
   const float *restrict Y1, const float *restrict Y2,
-  const float *restrict norm, float *restrict attract1,
-  float *restrict attract2, const int NNZ) {
+  float *restrict attract1, float *restrict attract2, const int NNZ) {
   const int index = (blockIdx.x * blockDim.x) + threadIdx.x;
   if (index >= NNZ) return;
   const int i = ROW[index];
@@ -643,9 +632,13 @@ __global__ void attractive_kernel_bh(
 
   // TODO: Calculate Kullback-Leibler divergence
   // TODO: Convert attractive forces to CSR format
+
+  const float normi = Y1[i] * Y1[i] + Y2[i] * Y2[i];
+  const float normj = Y1[j] * Y1[j] + Y2[j] * Y2[j];
+
   const float PQ = __fdividef(
     VAL[index],
-    norm[i] + 1.0f + norm[j] - 2.0f * (Y1[i] * Y1[j] + Y2[i] * Y2[j]));  // P*Q
+    normi + 1.0f + normj - 2.0f * (Y1[i] * Y1[j] + Y2[i] * Y2[j]));  // P*Q
 
   // Apply forces
   atomicAdd(&attract1[i], PQ * (Y1[i] - Y1[j]));
