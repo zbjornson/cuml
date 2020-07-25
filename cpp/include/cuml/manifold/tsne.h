@@ -63,7 +63,7 @@ using ProgressCb = std::function<void(float, const char*)>;
  *                                 or >= 0 for reproducible outputs.
  * @param[in] verbosity            verbosity level for logging messages during
  *                                 execution
- * @param[in] intialize_embeddings Whether to overwrite the current Y vector
+ * @param[in] initialize_embeddings Whether to overwrite the current Y vector
  *                                 with random noise.
  * @param[in] barnes_hut           Whether to use the fast Barnes Hut or use the
  *                                 slower exact version.
