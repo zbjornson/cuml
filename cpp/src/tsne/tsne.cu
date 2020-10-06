@@ -36,7 +36,8 @@ void TSNE_fit(const raft::handle_t &handle, const float *X, float *Y,
               const float post_learning_rate, const int max_iter,
               const float min_grad_norm, const float pre_momentum,
               const float post_momentum, const long long random_state,
-              int verbosity, const bool intialize_embeddings, bool barnes_hut) {
+              int verbosity, const bool intialize_embeddings, bool barnes_hut,
+              ProgressCb prog) {
   ASSERT(n > 0 && p > 0 && dim > 0 && n_neighbors > 0 && X != NULL && Y != NULL,
          "Wrong input args");
   ML::Logger::get().setLevel(verbosity);
@@ -71,7 +72,10 @@ void TSNE_fit(const raft::handle_t &handle, const float *X, float *Y,
   START_TIMER;
   //---------------------------------------------------
   // Get distances
-  CUML_LOG_DEBUG("Getting distances.");
+
+  if (prog)
+    prog(100.f * 1 / (max_iter + 3),
+         "Calculating distances…");
   MLCommon::device_buffer<float> distances(d_alloc, stream, n * n_neighbors);
   MLCommon::device_buffer<long> indices(d_alloc, stream, n * n_neighbors);
   TSNE::get_distances(X, n, p, indices.data(), distances.data(), n_neighbors,
@@ -82,7 +86,9 @@ void TSNE_fit(const raft::handle_t &handle, const float *X, float *Y,
   START_TIMER;
   //---------------------------------------------------
   // Normalize distances
-  CUML_LOG_DEBUG("Now normalizing distances so exp(D) doesn't explode.");
+  if (prog)
+    prog(100.f * 2 / (max_iter + 3),
+         "Normalizing distances…");
   TSNE::normalize_distances(n, distances.data(), n_neighbors, stream);
   //---------------------------------------------------
   END_TIMER(NormalizeTime);
@@ -90,7 +96,9 @@ void TSNE_fit(const raft::handle_t &handle, const float *X, float *Y,
   START_TIMER;
   //---------------------------------------------------
   // Optimal perplexity
-  CUML_LOG_DEBUG("Searching for optimal perplexity via bisection search.");
+  if (prog)
+    prog(100.f * 3 / (max_iter + 3),
+         "Searching for optimal perplexity…");
   MLCommon::device_buffer<float> P(d_alloc, stream, n * n_neighbors);
   TSNE::perplexity_search(distances.data(), P.data(), perplexity,
                           perplexity_max_iter, perplexity_tol, n, n_neighbors,
@@ -118,7 +126,8 @@ void TSNE_fit(const raft::handle_t &handle, const float *X, float *Y,
     TSNE::Barnes_Hut(VAL, COL, ROW, NNZ, handle, Y, n, theta, epssq,
                      early_exaggeration, exaggeration_iter, min_gain,
                      pre_learning_rate, post_learning_rate, max_iter,
-                     min_grad_norm, pre_momentum, post_momentum, random_state);
+                     min_grad_norm, pre_momentum, post_momentum, random_state,
+                     prog);
   } else {
     TSNE::Exact_TSNE(VAL, COL, ROW, NNZ, handle, Y, n, dim, early_exaggeration,
                      exaggeration_iter, min_gain, pre_learning_rate,

@@ -19,7 +19,11 @@
 #include <cuml/common/logger.hpp>
 #include <cuml/cuml.hpp>
 
+#include <functional>
+
 namespace ML {
+
+using ProgressCb = std::function<void(float, const char*)>;
 
 /**
  * @brief Dimensionality reduction via TSNE using either Barnes Hut O(NlogN)
@@ -85,6 +89,7 @@ void TSNE_fit(const raft::handle_t &handle, const float *X, float *Y,
               const float pre_momentum = 0.5, const float post_momentum = 0.8,
               const long long random_state = -1,
               int verbosity = CUML_LEVEL_INFO,
-              const bool intialize_embeddings = true, bool barnes_hut = true);
+              const bool intialize_embeddings = true, bool barnes_hut = true,
+              ProgressCb prog = nullptr);
 
 }  // namespace ML

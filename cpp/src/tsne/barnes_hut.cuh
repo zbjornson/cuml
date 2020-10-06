@@ -20,6 +20,7 @@
 #include <cuml/common/logger.hpp>
 #include "bh_kernels.cuh"
 #include "utils.cuh"
+#include <cmath>
 
 namespace ML {
 namespace TSNE {
@@ -56,7 +57,7 @@ void Barnes_Hut(float *VAL, const int *COL, const int *ROW, const int NNZ,
                 const float post_learning_rate = 500.0f,
                 const int max_iter = 1000, const float min_grad_norm = 1e-7,
                 const float pre_momentum = 0.5, const float post_momentum = 0.8,
-                const long long random_state = -1) {
+                const long long random_state = -1, ProgressCb prog = nullptr) {
   auto d_alloc = handle.get_device_allocator();
   cudaStream_t stream = handle.get_stream();
 
@@ -262,6 +263,15 @@ void Barnes_Hut(float *VAL, const int *COL, const int *ROW, const int NNZ,
     CUDA_CHECK(cudaPeekAtLastError());
 
     END_TIMER(IntegrationKernel_time);
+
+    if (prog) {
+      // Throttle invocations.
+      float progPrev = 100.0f * (2 + iter) / (max_iter + 3);
+      float progNow = 100.0f * (3 + iter) / (max_iter + 3);
+      if (std::round(progPrev) < std::round(progNow) || iter == max_iter) {
+        prog(progNow, "Annealing…");
+      }
+    }
   }
   PRINT_TIMES;
 
