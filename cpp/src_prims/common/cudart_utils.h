@@ -20,6 +20,7 @@
 #include <cuml/common/utils.hpp>
 #include <iomanip>
 #include <iostream>
+#include <utility>  // pair
 
 namespace raft {
 
@@ -41,6 +42,18 @@ inline int getMultiProcessorCount() {
   CUDA_CHECK(
     cudaDeviceGetAttribute(&mpCount, cudaDevAttrMultiProcessorCount, devId));
   return mpCount;
+}
+
+/** helper method to get the compute capability version numbers */
+inline std::pair<int, int> getDeviceCapability() {
+  int devId;
+  CUDA_CHECK(cudaGetDevice(&devId));
+  int major, minor;
+  CUDA_CHECK(
+    cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, devId));
+  CUDA_CHECK(
+    cudaDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMajor, devId));
+  return std::make_pair(major, minor);
 }
 
 /** helper method to convert an array on device to a string on host */
